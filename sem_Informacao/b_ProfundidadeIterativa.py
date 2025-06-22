@@ -1,4 +1,4 @@
-# Busca com Aprofundamento Iterativo (Iterative Deepening Search - IDS)
+# Busca com Profundamento Iterativo (Iterative Deepening Search - IDS)
 from puzzle import Puzzle
 from typing import List, Tuple, Optional
 
