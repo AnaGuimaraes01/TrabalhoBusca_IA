@@ -1,61 +1,23 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Busca em Profundidade (DFS) com limite de profundidade
+from puzzle import Puzzle
+from typing import List, Tuple
 
-from problema import PuzzleProblem  # Importa a classe que define o problema do puzzle
+def busca_em_profundidade(inicial: Puzzle, objetivo: Tuple[int], limite: int = 50) -> Tuple[List[str], int, int]:
+    fronteira = [inicial]
+    visitados = set()
+    nos_expandidos = 0
 
-# -----------------------------
-# Função de Busca em Profundidade (DFS)
-# -----------------------------
-def depthFirstSearch(problem):
-    # A fronteira começa com o estado inicial e o caminho vazio até ele
-    frontier = [(problem.getStartState(), [])]  # Lista funciona como pilha (LIFO)
-    explored = set()  # Conjunto de estados já visitados, para evitar repetição
+    while fronteira:
+        atual = fronteira.pop()
+        visitados.add(atual)
+        nos_expandidos += 1
 
-    while frontier:
-        # Remove o último item da pilha (comportamento LIFO)
-        state, path = frontier.pop()
+        if atual.estado == objetivo:
+            return atual.caminho(), atual.profundidade, nos_expandidos
 
-        # Se já visitou esse estado, ignora e continua
-        if state in explored:
-            continue
+        if atual.profundidade < limite:
+            for vizinho in reversed(atual.gerar_sucessores()):
+                if vizinho not in visitados:
+                    fronteira.append(vizinho)
 
-        # Marca o estado como visitado
-        explored.add(state)
-
-        # Verifica se o estado atual é o objetivo
-        if problem.isGoalState(state):
-            return path  # Retorna o caminho (lista de ações) até a solução
-
-        # Para cada sucessor gerado a partir do estado atual
-        for successor, action, cost in problem.getSuccessors(state):
-            # Cria o novo caminho acumulando a ação feita
-            new_path = path + [action]
-            # Adiciona o novo estado e seu caminho à pilha
-            frontier.append((successor, new_path))
-
-    return []  # Se não encontrar solução, retorna lista vazia
-
-
-# ---------- TESTE DIRETO -------------
-if __name__ == "__main__":
-    start = [
-        [1, 2, 3],
-        [4, 0, 5],
-        [6, 7, 8]
-    ]
-    goal = [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 0]
-    ]
-
-    start_tuple = tuple(tuple(row) for row in start)
-    goal_tuple = tuple(tuple(row) for row in goal)
-
-    problema = PuzzleProblem(start_tuple, goal_tuple)
-    caminho = depthFirstSearch(problema)
-
-    print("\nSolução encontrada com DFS:")
-    print("→", " → ".join(caminho))
-    print("Número de passos:", len(caminho))
+    return [], 0, nos_expandidos
