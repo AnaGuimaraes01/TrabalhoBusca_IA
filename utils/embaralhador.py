@@ -21,3 +21,4 @@ def gerar_estado_aleatorio_resolvido (tamanho: int, movimentos: int =15)-> Tuple
 
     return puzzle.estado
 
+
