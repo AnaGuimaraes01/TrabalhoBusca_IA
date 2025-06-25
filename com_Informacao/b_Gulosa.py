@@ -1,3 +1,4 @@
+
 # Busca Gulosa com heurística (ex: fora do lugar)
 from puzzle import Puzzle
 from heapq import heappush, heappop

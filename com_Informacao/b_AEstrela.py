@@ -1,3 +1,4 @@
+
 # Algoritmo A* (A Estrela) com heurística (ex: Manhattan)
 from puzzle import Puzzle
 from heapq import heappush, heappop

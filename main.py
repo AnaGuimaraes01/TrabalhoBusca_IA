@@ -1,9 +1,8 @@
 from puzzle import Puzzle
 from heuristicas.foraLugar import heuristica_fora_do_lugar
 from heuristicas.manhattan import heuristica_manhattan
-from utils.embaralhador import gerar_estado_aleatorio_resolvido  
-from utils.tempo import Temporizador
-from utils.visualizador import mostrar_caminho
+from utils.embaralhador import gerar_estado_aleatorio_resolvido
+from time import time
 
 from sem_Informacao.b_Largura import busca_em_largura
 from sem_Informacao.b_Profundidade import busca_em_profundidade
@@ -11,180 +10,510 @@ from sem_Informacao.b_ProfundidadeIterativa import busca_aprofundamento_iterativ
 from com_Informacao.b_Gulosa import busca_gulosa
 from com_Informacao.b_AEstrela import busca_a_estrela
 
-# -------------
-# ESTADOS INICIAIS E OBJETIVOS
-# -------------
 
-# Para 8 peças (3x3)
-estado_3x3 = gerar_estado_aleatorio_resolvido(3)
-puzzle_3x3 = Puzzle(estado_3x3, 3)
-objetivo_3x3 = (1, 2, 3,
-                4, 5, 6,
-                7, 8, 0)
+def executar_para_tamanhos(algoritmo, heuristica=None):
+    tamanhos = [3, 4] if algoritmo in ["largura", "profundidade", "ids"] else [3, 4, 5]
 
-# Para 15 peças (4x4)
-estado_4x4 = gerar_estado_aleatorio_resolvido(4)
-puzzle_4x4 = Puzzle(estado_4x4, 4)
-objetivo_4x4 = (1, 2, 3, 4,
-                5, 6, 7, 8,
-                9, 10, 11, 12,
-                13, 14, 15, 0)
+    for tamanho in tamanhos:
+        print(f"\n=== Puzzle {tamanho}x{tamanho} ===")
+        estado_inicial = gerar_estado_aleatorio_resolvido(tamanho)
+        objetivo = tuple(list(range(1, tamanho * tamanho)) + [0])
+        puzzle = Puzzle(estado_inicial, tamanho)
 
-# Para 24 peças (5x5)
-estado_5x5 = gerar_estado_aleatorio_resolvido(5)
-puzzle_5x5 = Puzzle(estado_5x5, 5)
-objetivo_5x5 = (1, 2, 3, 4, 5,
-                6, 7, 8, 9, 10,
-                11, 12, 13, 14, 15,
-                16, 17, 18, 19, 20,
-                21, 22, 23, 24, 0)
+        print("\nEstado Inicial vs Estado Objetivo:")
+        for i in range(tamanho):
+            print(f"{puzzle.estado[i*tamanho:(i+1)*tamanho]}   =>   {list(objetivo)[i*tamanho:(i+1)*tamanho]}")
 
-# -------------
-# BUSCAS SEM INFORMAÇÃO - 3x3
-# -------------
-print("\n--- Busca em Largura (BFS) - 8 peças ---")
-timer = Temporizador()
-timer.iniciar()
-acoes, passos, nos = busca_em_largura(puzzle_3x3, objetivo_3x3)
-timer.parar()
-timer.imprimir_tempo()
-print("Ações:", acoes)
-print("Passos:", passos)
-print("Nós expandidos:", nos)
+        inicio = time()
+        caminho = []
+        passos = 0
+        nos = None
+        resultado = None
 
-print("\n--- Busca em Profundidade (DFS) - 8 peças ---")
-timer.iniciar()
-acoes_dfs, passos_dfs, nos_dfs = busca_em_profundidade(puzzle_3x3, objetivo_3x3)
-timer.parar()
-timer.imprimir_tempo()
-print("Ações:", acoes_dfs)
-print("Passos:", passos_dfs)
-print("Nós expandidos:", nos_dfs)
+        try:
+            if algoritmo == "largura":
+                caminho, passos, nos = busca_em_largura(puzzle, objetivo)
+            elif algoritmo == "profundidade":
+                caminho, passos, nos = busca_em_profundidade(puzzle, objetivo, tempo_maximo=60, limite=400)
+            elif algoritmo == "ids":
+                caminho, passos, nos, _ = busca_aprofundamento_iterativo(puzzle, objetivo, limite_max=60)
+            elif algoritmo == "gulosa":
+                resultado = busca_gulosa(puzzle.estado, puzzle.tamanho, objetivo, heuristica)
+                caminho = resultado.caminho() if resultado else []
+                passos = resultado.profundidade if resultado else 0
+            elif algoritmo == "aestrela":
+                resultado = busca_a_estrela(puzzle.estado, puzzle.tamanho, objetivo, heuristica)
+                caminho = resultado.caminho() if resultado else []
+                passos = resultado.profundidade if resultado else 0
+        except TimeoutError:
+            print("⏳ Tempo limite atingido.")
+            caminho, passos, nos = [], 0, 0
 
-print("\n--- Busca com Aprofundamento Iterativo (IDS) - 8 peças ---")
-timer.iniciar()
-caminho_ids, profundidade_ids, nos_ids, solucao_ids = busca_aprofundamento_iterativo(puzzle_3x3, objetivo_3x3)
-timer.parar()
-timer.imprimir_tempo()
-if solucao_ids:
-    print("Movimentos:", caminho_ids)
-    print("Profundidade:", profundidade_ids)
-    print("Nós expandidos:", nos_ids)
-    mostrar_caminho(solucao_ids)
-else:
-    print("Nenhuma solução encontrada.")
+        fim = time()
 
-# -------------
-# BUSCAS SEM INFORMAÇÃO - 4x4
-# -------------
-print("\n--- Busca em Largura (BFS) - 15 peças ---")
-timer.iniciar()
-acoes, passos, nos = busca_em_largura(puzzle_4x4, objetivo_4x4)
-timer.parar()
-timer.imprimir_tempo()
-print("Ações:", acoes)
-print("Passos:", passos)
-print("Nós expandidos:", nos)
+        print("\nResultado:")
+        print("Movimentos:", caminho if caminho else "Nenhum")
+        print("Passos:", passos)
+        if nos is not None:
+            print("Nós expandidos:", nos)
+        print(f"Tempo: {fim - inicio:.2f} segundos")
 
-print("\n--- Busca em Profundidade (DFS) - 15 peças ---")
-timer.iniciar()
-acoes_dfs, passos_dfs, nos_dfs = busca_em_profundidade(puzzle_4x4, objetivo_4x4)
-timer.parar()
-timer.imprimir_tempo()
-print("Ações:", acoes_dfs)
-print("Passos:", passos_dfs)
-print("Nós expandidos:", nos_dfs)
+        print("\nCaminho percorrido até o objetivo:")
 
-print("\n--- Busca com Aprofundamento Iterativo (IDS) - 15 peças ---")
-timer.iniciar()
-caminho_ids, profundidade_ids, nos_ids, solucao_ids = busca_aprofundamento_iterativo(puzzle_4x4, objetivo_4x4)
-timer.parar()
-timer.imprimir_tempo()
-if solucao_ids:
-    print("Movimentos:", caminho_ids)
-    print("Profundidade:", profundidade_ids)
-    print("Nós expandidos:", nos_ids)
-    mostrar_caminho(solucao_ids)
-else:
-    print("Nenhuma solução encontrada.")
+        if algoritmo in ["largura", "profundidade", "ids"]:
+            if caminho:
+                estado_atual = Puzzle(estado_inicial, tamanho)
+                print("Passo 0 (inicial):")
+                for i in range(tamanho):
+                    print(estado_atual.estado[i*tamanho:(i+1)*tamanho])
+                print()
+                for idx, movimento in enumerate(caminho, 1):
+                    for filho in estado_atual.gerar_sucessores():
+                        if filho.acao == movimento:
+                            estado_atual = filho
+                            break
+                    print(f"Passo {idx}:")
+                    for i in range(tamanho):
+                        print(estado_atual.estado[i*tamanho:(i+1)*tamanho])
+                    print()
+        elif resultado:
+            estados = resultado.caminho_estados()
+            for idx, estado in enumerate(estados):
+                print(f"Passo {idx}:")
+                for i in range(tamanho):
+                    print(estado[i*tamanho:(i+1)*tamanho])
+                print()
 
-# -------------
-# BUSCAS COM INFORMAÇÃO - 3x3
-# -------------
-print("\n--- Busca Gulosa - 8 peças ---")
-timer.iniciar()
-resultado_gulosa = busca_gulosa(puzzle_3x3.estado, puzzle_3x3.tamanho, objetivo_3x3, heuristica_fora_do_lugar)
-timer.parar()
-timer.imprimir_tempo()
-if resultado_gulosa:
-    print("Movimentos:", resultado_gulosa.caminho())
-    print("Profundidade:", resultado_gulosa.profundidade)
-    mostrar_caminho(resultado_gulosa)
-else:
-    print("Nenhuma solução encontrada com busca gulosa.")
 
-print("\n--- Busca A* - 8 peças ---")
-timer.iniciar()
-resultado_astar = busca_a_estrela(puzzle_3x3.estado, puzzle_3x3.tamanho, objetivo_3x3, heuristica_manhattan)
-timer.parar()
-timer.imprimir_tempo()
-if resultado_astar:
-    print("Movimentos:", resultado_astar.caminho())
-    print("Profundidade:", resultado_astar.profundidade)
-    mostrar_caminho(resultado_astar)
-else:
-    print("Nenhuma solução encontrada com A*.")
+def menu_algoritmos():
+    while True:
+        print("\n=== Menu - Escolha o algoritmo ===")
+        print("1 - Busca em Largura (BFS)")
+        print("2 - Busca em Profundidade (DFS)")
+        print("3 - Aprofundamento Iterativo (IDS)")
+        print("4 - Busca Gulosa")
+        print("5 - Busca A* (A Estrela)")
+        print("0 - Sair")
 
-# -------------
-# BUSCAS COM INFORMAÇÃO - 4x4
-# -------------
-print("\n--- Busca Gulosa - 15 peças ---")
-timer.iniciar()
-resultado_gulosa = busca_gulosa(puzzle_4x4.estado, puzzle_4x4.tamanho, objetivo_4x4, heuristica_fora_do_lugar)
-timer.parar()
-timer.imprimir_tempo()
-if resultado_gulosa:
-    print("Movimentos:", resultado_gulosa.caminho())
-    print("Profundidade:", resultado_gulosa.profundidade)
-    mostrar_caminho(resultado_gulosa)
-else:
-    print("Nenhuma solução encontrada com busca gulosa.")
+        escolha = input("Opção: ")
+        if escolha == "0":
+            break
+        elif escolha == "1":
+            executar_para_tamanhos("largura")
+        elif escolha == "2":
+            executar_para_tamanhos("profundidade")
+        elif escolha == "3":
+            executar_para_tamanhos("ids")
+        elif escolha == "4":
+            executar_para_tamanhos("gulosa", heuristica_fora_do_lugar)
+        elif escolha == "5":
+            executar_para_tamanhos("aestrela", heuristica_manhattan)
+        else:
+            print("Opção inválida.")
 
-print("\n--- Busca A* - 15 peças ---")
-timer.iniciar()
-resultado_astar = busca_a_estrela(puzzle_4x4.estado, puzzle_4x4.tamanho, objetivo_4x4, heuristica_manhattan)
-timer.parar()
-timer.imprimir_tempo()
-if resultado_astar:
-    print("Movimentos:", resultado_astar.caminho())
-    print("Profundidade:", resultado_astar.profundidade)
-    mostrar_caminho(resultado_astar)
-else:
-    print("Nenhuma solução encontrada com A*.")
+if __name__ == "__main__":
+    menu_algoritmos()
 
-# -------------
-# BUSCAS COM INFORMAÇÃO - 5x5
-# -------------
-print("\n--- Busca Gulosa - 24 peças ---")
-timer.iniciar()
-resultado_gulosa = busca_gulosa(puzzle_5x5.estado, puzzle_5x5.tamanho, objetivo_5x5, heuristica_fora_do_lugar)
-timer.parar()
-timer.imprimir_tempo()
-if resultado_gulosa:
-    print("Movimentos:", resultado_gulosa.caminho())
-    print("Profundidade:", resultado_gulosa.profundidade)
-    mostrar_caminho(resultado_gulosa)
-else:
-    print("Nenhuma solução encontrada com busca gulosa.")
 
-print("\n--- Busca A* - 24 peças ---")
-timer.iniciar()
-resultado_astar = busca_a_estrela(puzzle_5x5.estado, puzzle_5x5.tamanho, objetivo_5x5, heuristica_manhattan)
-timer.parar()
-timer.imprimir_tempo()
-if resultado_astar:
-    print("Movimentos:", resultado_astar.caminho())
-    print("Profundidade:", resultado_astar.profundidade)
-    mostrar_caminho(resultado_astar)
-else:
-    print("Nenhuma solução encontrada com A*.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# from puzzle import Puzzle
+# from heuristicas.foraLugar import heuristica_fora_do_lugar
+# from heuristicas.manhattan import heuristica_manhattan
+# from utils.embaralhador import gerar_estado_aleatorio_resolvido
+# from time import time
+
+# from sem_Informacao.b_Largura import busca_em_largura
+# from sem_Informacao.b_Profundidade import busca_em_profundidade
+# from sem_Informacao.b_ProfundidadeIterativa import busca_aprofundamento_iterativo
+# from com_Informacao.b_Gulosa import busca_gulosa
+# from com_Informacao.b_AEstrela import busca_a_estrela
+
+
+# def executar_para_tamanhos(algoritmo, heuristica=None):
+#     tamanhos = [3, 4] if algoritmo in ["largura", "profundidade", "ids"] else [3, 4, 5]
+
+#     for tamanho in tamanhos:
+#         print(f"\n=== Puzzle {tamanho}x{tamanho} ===")
+#         estado_inicial = gerar_estado_aleatorio_resolvido(tamanho)
+#         objetivo = tuple(list(range(1, tamanho * tamanho)) + [0])
+#         puzzle = Puzzle(estado_inicial, tamanho)
+
+#         print("\nEstado Inicial vs Estado Objetivo:")
+#         for i in range(tamanho):
+#             linha_inicial = puzzle.estado[i*tamanho:(i+1)*tamanho]
+#             linha_objetivo = objetivo[i*tamanho:(i+1)*tamanho]
+#             print(f"{linha_inicial}   =>   {linha_objetivo}")
+
+#         inicio = time()
+
+#         caminho = []
+#         passos = 0
+#         nos = None
+
+#         try:
+#             if algoritmo == "largura":
+#                 caminho, passos, nos = busca_em_largura(puzzle, objetivo, tempo_maximo=30)
+#             elif algoritmo == "profundidade":
+#                 caminho, passos, nos = busca_em_profundidade(puzzle, objetivo, tempo_maximo=60, limite=400)
+#             elif algoritmo == "ids":
+#                 caminho, passos, nos, _ = busca_aprofundamento_iterativo(puzzle, objetivo, tempo_maximo=60)
+#             elif algoritmo == "gulosa":
+#                 resultado = busca_gulosa(puzzle.estado, puzzle.tamanho, objetivo, heuristica, tempo_maximo=60)
+#                 caminho = resultado.caminho() if resultado else []
+#                 passos = resultado.profundidade if resultado else 0
+#             elif algoritmo == "aestrela":
+#                 resultado = busca_a_estrela(puzzle.estado, puzzle.tamanho, objetivo, heuristica, tempo_maximo=60)
+#                 caminho = resultado.caminho() if resultado else []
+#                 passos = resultado.profundidade if resultado else 0
+#         except TimeoutError:
+#             print("⏳ Tempo limite atingido.")
+#             caminho, passos, nos = [], 0, 0
+
+#         fim = time()
+
+#         print("\nResultado:")
+#         print("Movimentos:", caminho if caminho else "Nenhum")
+#         print("Passos:", passos)
+#         if nos is not None:
+#             print("Nós expandidos:", nos)
+#         print(f"Tempo: {fim - inicio:.2f} segundos")
+
+#         # Mostra o caminho completo em estados
+#         if caminho:
+#             print("\nCaminho percorrido até o objetivo:")
+#             estado_atual = list(puzzle.estado)
+#             print("Estado inicial:")
+#             for i in range(tamanho):
+#                 print(estado_atual[i*tamanho:(i+1)*tamanho])
+#             for movimento in caminho:
+#                 estado_atual = Puzzle.mover(estado_atual, tamanho, movimento)
+#                 print(f"\nMovimento: {movimento}")
+#                 for i in range(tamanho):
+#                     print(estado_atual[i*tamanho:(i+1)*tamanho])
+#         print("\n" + "="*40 + "\n")
+
+
+# def menu_algoritmos():
+#     while True:
+#         print("=== Menu - Escolha o algoritmo ===")
+#         print("1 - Busca em Largura (BFS)")
+#         print("2 - Busca em Profundidade (DFS)")
+#         print("3 - Aprofundamento Iterativo (IDS)")
+#         print("4 - Busca Gulosa")
+#         print("5 - Busca A* (A Estrela)")
+#         print("0 - Sair")
+
+#         escolha = input("Opção: ")
+#         if escolha == "0":
+#             break
+#         elif escolha == "1":
+#             executar_para_tamanhos("largura")
+#         elif escolha == "2":
+#             executar_para_tamanhos("profundidade")
+#         elif escolha == "3":
+#             executar_para_tamanhos("ids")
+#         elif escolha == "4":
+#             executar_para_tamanhos("gulosa", heuristica_fora_do_lugar)
+#         elif escolha == "5":
+#             executar_para_tamanhos("aestrela", heuristica_manhattan)
+#         else:
+#             print("Opção inválida.")
+
+# if __name__ == "__main__":
+#     menu_algoritmos()
+
+# from puzzle import Puzzle
+# from heuristicas.foraLugar import heuristica_fora_do_lugar
+# from heuristicas.manhattan import heuristica_manhattan
+# from utils.embaralhador import gerar_estado_aleatorio_resolvido
+# from time import time
+
+# from sem_Informacao.b_Largura import busca_em_largura
+# from sem_Informacao.b_Profundidade import busca_em_profundidade
+# from sem_Informacao.b_ProfundidadeIterativa import busca_aprofundamento_iterativo
+# from com_Informacao.b_Gulosa import busca_gulosa
+# from com_Informacao.b_AEstrela import busca_a_estrela
+
+
+# def executar_para_tamanhos(algoritmo, heuristica=None):
+#     tamanhos = [3, 4] if algoritmo in ["largura", "profundidade", "ids"] else [3, 4, 5]
+
+#     for tamanho in tamanhos:
+#         print(f"\n=== Puzzle {tamanho}x{tamanho} ===")
+#         estado_inicial = gerar_estado_aleatorio_resolvido(tamanho)
+#         objetivo = tuple(list(range(1, tamanho * tamanho)) + [0])
+#         puzzle = Puzzle(estado_inicial, tamanho)
+
+#         print("Estado inicial:")
+#         for i in range(tamanho):
+#             print(puzzle.estado[i*tamanho:(i+1)*tamanho])
+
+#         inicio = time()
+
+#         caminho = []
+#         passos = 0
+#         nos = None
+
+#         try:
+#             if algoritmo == "largura":
+#                 caminho, passos, nos = busca_em_largura(puzzle, objetivo, tempo_maximo=30)
+#             elif algoritmo == "profundidade":
+#                 # AQUI aplicamos tempo e profundidade máxima controlada
+#                 caminho, passos, nos = busca_em_profundidade(puzzle, objetivo, tempo_maximo=60, limite=400)
+#             elif algoritmo == "ids":
+#                 caminho, passos, nos, _ = busca_aprofundamento_iterativo(puzzle, objetivo, tempo_maximo=60)
+#             elif algoritmo == "gulosa":
+#                 resultado = busca_gulosa(puzzle.estado, puzzle.tamanho, objetivo, heuristica, tempo_maximo=60)
+#                 caminho = resultado.caminho() if resultado else []
+#                 passos = resultado.profundidade if resultado else 0
+#             elif algoritmo == "aestrela":
+#                 resultado = busca_a_estrela(puzzle.estado, puzzle.tamanho, objetivo, heuristica, tempo_maximo=60)
+#                 caminho = resultado.caminho() if resultado else []
+#                 passos = resultado.profundidade if resultado else 0
+#         except TimeoutError:
+#             print("⏳ Tempo limite atingido.")
+#             caminho, passos, nos = [], 0, 0
+
+#         fim = time()
+
+#         print("\nResultado:")
+#         print("Movimentos:", caminho if caminho else "Nenhum")
+#         print("Passos:", passos)
+#         if nos is not None:
+#             print("Nós expandidos:", nos)
+#         print(f"Tempo: {fim - inicio:.2f} segundos\n")
+
+
+# def menu_algoritmos():
+#     while True:
+#         print("=== Menu - Escolha o algoritmo ===")
+#         print("1 - Busca em Largura (BFS)")
+#         print("2 - Busca em Profundidade (DFS)")
+#         print("3 - Aprofundamento Iterativo (IDS)")
+#         print("4 - Busca Gulosa")
+#         print("5 - Busca A* (A Estrela)")
+#         print("0 - Sair")
+
+#         escolha = input("Opção: ")
+#         if escolha == "0":
+#             break
+#         elif escolha == "1":
+#             executar_para_tamanhos("largura")
+#         elif escolha == "2":
+#             executar_para_tamanhos("profundidade")
+#         elif escolha == "3":
+#             executar_para_tamanhos("ids")
+#         elif escolha == "4":
+#             executar_para_tamanhos("gulosa", heuristica_fora_do_lugar)
+#         elif escolha == "5":
+#             executar_para_tamanhos("aestrela", heuristica_manhattan)
+#         else:
+#             print("Opção inválida.")
+
+# if __name__ == "__main__":
+#     menu_algoritmos()
+
+
+
+# from puzzle import Puzzle
+# from heuristicas.foraLugar import heuristica_fora_do_lugar
+# from heuristicas.manhattan import heuristica_manhattan
+# from utils.embaralhador import gerar_estado_aleatorio_resolvido
+# from time import time
+
+# from sem_Informacao.b_Largura import busca_em_largura
+# from sem_Informacao.b_Profundidade import busca_em_profundidade
+# from sem_Informacao.b_ProfundidadeIterativa import busca_aprofundamento_iterativo
+# from com_Informacao.b_Gulosa import busca_gulosa
+# from com_Informacao.b_AEstrela import busca_a_estrela
+
+# def executar_para_tamanhos(algoritmo, heuristica=None):
+#     if algoritmo in ["largura", "profundidade", "ids"]:
+#         tamanhos = [3, 4]  # Apenas 8 e 15 peças
+#     else:
+#         tamanhos = [3, 4, 5]  # 8, 15 e 24 peças
+
+#     for tamanho in tamanhos:
+#         print(f"\n=== Puzzle {tamanho}x{tamanho} ===")
+#         estado_inicial = gerar_estado_aleatorio_resolvido(tamanho)
+#         objetivo = tuple(list(range(1, tamanho * tamanho)) + [0])
+#         puzzle = Puzzle(estado_inicial, tamanho)
+
+#         print("Estado inicial:")
+#         for i in range(tamanho):
+#             print(puzzle.estado[i*tamanho:(i+1)*tamanho])
+
+#         inicio = time()
+
+#         if algoritmo == "largura":
+#             caminho, passos, nos = busca_em_largura(puzzle, objetivo)
+#         elif algoritmo == "profundidade":
+#             caminho, passos, nos = busca_em_profundidade(puzzle, objetivo)
+#         elif algoritmo == "ids":
+#             caminho, passos, nos, _ = busca_aprofundamento_iterativo(puzzle, objetivo)
+#         elif algoritmo == "gulosa":
+#             resultado = busca_gulosa(puzzle.estado, puzzle.tamanho, objetivo, heuristica)
+#             caminho = resultado.caminho() if resultado else []
+#             passos = resultado.profundidade if resultado else 0
+#             nos = None
+#         elif algoritmo == "aestrela":
+#             resultado = busca_a_estrela(puzzle.estado, puzzle.tamanho, objetivo, heuristica)
+#             caminho = resultado.caminho() if resultado else []
+#             passos = resultado.profundidade if resultado else 0
+#             nos = None
+#         else:
+#             print("Algoritmo inválido.")
+#             return
+
+#         fim = time()
+
+#         print("\nResultado:")
+#         print("Movimentos:", caminho if caminho else "Nenhum")
+#         print("Passos:", passos)
+#         if nos is not None:
+#             print("Nós expandidos:", nos)
+#         print(f"Tempo: {fim - inicio:.2f} segundos\n")
+
+
+# def menu_algoritmos():
+#     while True:
+#         print("=== Menu - Escolha o algoritmo ===")
+#         print("1 - Busca em Largura (BFS)")
+#         print("2 - Busca em Profundidade (DFS)")
+#         print("3 - Aprofundamento Iterativo (IDS)")
+#         print("4 - Busca Gulosa")
+#         print("5 - Busca A* (A Estrela)")
+#         print("0 - Sair")
+
+#         escolha = input("Opção: ")
+#         if escolha == "0":
+#             break
+#         elif escolha == "1":
+#             executar_para_tamanhos("largura")
+#         elif escolha == "2":
+#             executar_para_tamanhos("profundidade")
+#         elif escolha == "3":
+#             executar_para_tamanhos("ids")
+#         elif escolha == "4":
+#             executar_para_tamanhos("gulosa", heuristica_fora_do_lugar)
+#         elif escolha == "5":
+#             executar_para_tamanhos("aestrela", heuristica_manhattan)
+#         else:
+#             print("Opção inválida.")
+
+# if __name__ == "__main__":
+#     menu_algoritmos()
+
+
+
+
+# # from puzzle import Puzzle
+# # from heuristicas.foraLugar import heuristica_fora_do_lugar
+# # from heuristicas.manhattan import heuristica_manhattan
+# # from utils.embaralhador import gerar_estado_aleatorio_resolvido
+# # from time import time
+
+# # from sem_Informacao.b_Largura import busca_em_largura
+# # from sem_Informacao.b_Profundidade import busca_em_profundidade
+# # from sem_Informacao.b_ProfundidadeIterativa import busca_aprofundamento_iterativo
+# # from com_Informacao.b_Gulosa import busca_gulosa
+# # from com_Informacao.b_AEstrela import busca_a_estrela
+
+# # def executar_para_tamanhos(algoritmo, heuristica=None):
+# #     for tamanho in [3, 4, 5]:
+# #         print(f"\n=== Puzzle {tamanho}x{tamanho} ===")
+# #         estado_inicial = gerar_estado_aleatorio_resolvido(tamanho)
+# #         objetivo = tuple(list(range(1, tamanho * tamanho)) + [0])
+# #         puzzle = Puzzle(estado_inicial, tamanho)
+
+# #         print("Estado inicial:")
+# #         for i in range(tamanho):
+# #             linha = puzzle.estado[i*tamanho:(i+1)*tamanho]
+# #             print(linha)
+
+# #         inicio = time()
+
+# #         if algoritmo == "largura":
+# #             caminho, passos, nos = busca_em_largura(puzzle, objetivo)
+# #         elif algoritmo == "profundidade":
+# #             caminho, passos, nos = busca_em_profundidade(puzzle, objetivo)
+# #         elif algoritmo == "ids":
+# #             caminho, passos, nos, _ = busca_aprofundamento_iterativo(puzzle, objetivo)
+# #         elif algoritmo == "gulosa":
+# #             resultado = busca_gulosa(puzzle.estado, puzzle.tamanho, objetivo, heuristica)
+# #             caminho = resultado.caminho() if resultado else []
+# #             passos = resultado.profundidade if resultado else 0
+# #             nos = None
+# #         elif algoritmo == "aestrela":
+# #             resultado = busca_a_estrela(puzzle.estado, puzzle.tamanho, objetivo, heuristica)
+# #             caminho = resultado.caminho() if resultado else []
+# #             passos = resultado.profundidade if resultado else 0
+# #             nos = None
+# #         else:
+# #             print("Algoritmo inválido.")
+# #             return
+
+# #         fim = time()
+
+# #         print("\nResultado:")
+# #         print("Movimentos:", caminho if caminho else "Nenhum")
+# #         print("Passos:", passos)
+# #         if nos is not None:
+# #             print("Nós expandidos:", nos)
+# #         print(f"Tempo: {fim - inicio:.2f} segundos\n")
+
+# # def menu_algoritmos():
+# #     while True:
+# #         print("=== Menu - Escolha o algoritmo ===")
+# #         print("1 - Busca em Largura (BFS)")
+# #         print("2 - Busca em Profundidade (DFS)")
+# #         print("3 - Aprofundamento Iterativo (IDS)")
+# #         print("4 - Busca Gulosa")
+# #         print("5 - Busca A* (A Estrela)")
+# #         print("0 - Sair")
+
+# #         escolha = input("Opção: ")
+# #         if escolha == "0":
+# #             break
+# #         elif escolha == "1":
+# #             executar_para_tamanhos("largura")
+# #         elif escolha == "2":
+# #             executar_para_tamanhos("profundidade")
+# #         elif escolha == "3":
+# #             executar_para_tamanhos("ids")
+# #         elif escolha == "4":
+# #             executar_para_tamanhos("gulosa", heuristica_fora_do_lugar)
+# #         elif escolha == "5":
+# #             executar_para_tamanhos("aestrela", heuristica_manhattan)
+# #         else:
+# #             print("Opção inválida.")
+
+# # if __name__ == "__main__":
+# #     menu_algoritmos()
